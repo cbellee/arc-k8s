@@ -1,38 +1,62 @@
 param location string
 param alias string
-param vmSize string = 'Standard_DS3_v2'
 param adminUserName string
 param adminPassword string
+param vmSize string = 'Standard_DS3_v2'
 param sshPublicKey string
-param scriptUri string
 param imageRef object = {
-  offer: '0001-com-ubuntu-server-focal'
+  offer: 'UbuntuServer'
   publisher: 'Canonical'
-  sku: '20_04-lts'
+  sku: '18.04-LTS'
   version: 'latest'
 }
 
-var resourceGroupName = 'k9s-arc-workshop-${alias}-rg'
 var vnetName = 'k8s-vnet-${alias}'
 var subnetName = 'k8s-subnet'
 var vmName = 'k8s-master'
 var nicName = '${vmName}-nic'
 var publicIpAddressName = '${vmName}-vip'
 var publicIpAddressDnsName = 'k8s-master-lab-${alias}'
+var nsgName = '${vmName}-nsg'
 
-module resourceGroupModule 'resourceGroup.bicep' = {
-  name: 'resourceGroupDeployment'
-  scope: subscription()
-  params: {
-    location: location
-    name: resourceGroupName
+resource vmNsg 'Microsoft.Network/networkSecurityGroups@2021-02-01' = {
+  location: location
+  name: nsgName
+  properties: {
+    securityRules: [
+      {
+        name: 'allow-inbound-internet-tcp-6443'
+        properties: {
+          access: 'Allow'
+          destinationAddressPrefix: 'VirtualNetwork'
+          destinationPortRange: '6443'
+          direction: 'Inbound'
+          priority: 1000
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          description: 'allow inbound TCP traffic from internet to virtual network on port 6443'
+        }
+      }
+      {
+        name: 'allow-inbound-internet-tcp-22'
+        properties: {
+          access: 'Allow'
+          destinationAddressPrefix: 'VirtualNetwork'
+          destinationPortRange: '22'
+          direction: 'Inbound'
+          priority: 1100
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          description: 'allow inbound TCP traffic from internet to virtual network on port 22'
+        }
+      }
+    ]
   }
 }
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
-  dependsOn: [
-    resourceGroupModule
-  ]
   location: location
   name: vnetName
   properties: {
@@ -46,6 +70,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
         name: subnetName
         properties: {
           addressPrefix: '172.10.0.0/24'
+          networkSecurityGroup: {
+            id: vmNsg.id
+          }
         }
       }
     ]
@@ -53,9 +80,6 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
 }
 
 resource vmPublicIpAddress 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
-  dependsOn: [
-    resourceGroupModule
-  ]
   location: location
   name: publicIpAddressName
   sku: {
@@ -143,25 +167,24 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
 
 resource scriptExtension 'Microsoft.Compute/virtualMachines/extensions@2021-03-01' = {
   parent: vm
-  name: 'k8ssetup'
+  name: 'k8sSetupScript'
   location: location
   properties: {
     autoUpgradeMinorVersion: true
-    enableAutomaticUpgrade: true
     publisher: 'Microsoft.Azure.Extensions'
     type: 'CustomScript'
     typeHandlerVersion: '2.1'
     protectedSettings: {
-      commandToExecute: '<command-to-execute>'
-      //script: 'base64-script-to-execute>'
-      storageAccountName: ''
-      storageAccountKey: ''
+      commandToExecute: 'sh prepare-cluster.sh -d ${vmPublicIpAddress.properties.dnsSettings.fqdn} -i ${vmPublicIpAddress.properties.ipAddress}'
       fileUris: [
-        scriptUri
+        'https://raw.githubusercontent.com/cbellee/arc-k8s/main/bicep/prepare-cluster.sh'
+        'https://raw.githubusercontent.com/cbellee/arc-k8s/main/bicep/install-cluster.sh'
       ]
-      managedIdentity: ''
     }
   }
 }
 
 output sshCommand string = 'ssh ${adminUserName}@${vmPublicIpAddress.properties.dnsSettings.fqdn}'
+output kubeConfig string = scriptExtension.properties.instanceView.statuses[0].message
+output fqdn string = vmPublicIpAddress.properties.dnsSettings.fqdn
+output ipAddress string = vmPublicIpAddress.properties.ipAddress
