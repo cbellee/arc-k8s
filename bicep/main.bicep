@@ -1,7 +1,6 @@
 param location string
 param alias string
 param adminUserName string
-param adminPassword string
 param vmSize string = 'Standard_DS3_v2'
 param sshPublicKey string
 param imageRef object = {
@@ -144,7 +143,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
       ]
     }
     osProfile: {
-      adminPassword: adminPassword
       adminUsername: adminUserName
       computerName: vmName
       linuxConfiguration: {
@@ -156,7 +154,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
             }
           ]
         }
-        disablePasswordAuthentication: false
+        disablePasswordAuthentication: true
         patchSettings: {
           patchMode: 'AutomaticByPlatform'
         }
@@ -185,6 +183,7 @@ resource scriptExtension 'Microsoft.Compute/virtualMachines/extensions@2021-03-0
 }
 
 output sshCommand string = 'ssh ${adminUserName}@${vmPublicIpAddress.properties.dnsSettings.fqdn}'
+output userName string = adminUserName
 output kubeConfig string = scriptExtension.properties.instanceView.statuses[0].message
 output fqdn string = vmPublicIpAddress.properties.dnsSettings.fqdn
 output ipAddress string = vmPublicIpAddress.properties.ipAddress
