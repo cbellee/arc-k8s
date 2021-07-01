@@ -21,4 +21,4 @@ OUTPUT=$(az deployment group show \
 FQDN=$(echo $OUTPUT | jq '.fqdn' -r)
 
 ssh $ADMIN_USER_NAME@$FQDN
-sudo scp $ADMIN_USER_NAME@$FQDN:/etc/kubernetes/admin.conf ~/.kube/config2
+sudo scp $ADMIN_USER_NAME@$FQDN:/tmp/config ~/.kube/config2
