@@ -20,5 +20,7 @@ OUTPUT=$(az deployment group show \
 
 FQDN=$(echo $OUTPUT | jq '.fqdn' -r)
 
-ssh $ADMIN_USER_NAME@$FQDN
-sudo scp $ADMIN_USER_NAME@$FQDN:/tmp/config /tmp/config
+# ssh $ADMIN_USER_NAME@$FQDN
+
+# copy remote kubeconfig file to ~/.kube/config
+sudo scp -i ~/.ssh/id_rsa $ADMIN_USER_NAME@$FQDN:/tmp/config ~/.kube/config
