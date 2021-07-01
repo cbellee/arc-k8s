@@ -19,6 +19,7 @@ sudo chown $(id -u):$(id -g ) $HOME/.kube/config
 
 # copy /etc/kubernetes/admin.conf file to /tmp/config so that we can easily scp it to the local machine later
 sudo cp /etc/kubernetes/admin.conf /tmp/config
+sudo chown localadmin /tmp/config
 
 ## Install the network plugin
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
