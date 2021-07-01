@@ -14,10 +14,8 @@ sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-cert-extra-sans 
 
 ## Copy the kubeconfig file to .kube folder for kubectl access on the VM
 mkdir -p /home/localadmin/.kube
-sudo cp -i /etc/kubernetes/admin.conf /home/localadmin/.kube/config
+sudo cp /etc/kubernetes/admin.conf /home/localadmin/.kube/config
 sudo chown $(id -u localadmin):$(id -g localadmin) /home/localadmin/.kube/config
-
-echo "kube config location: $(/home/localadmin/.kube/config)"
 
 ## Install the network plugin
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
