@@ -17,7 +17,7 @@ mkdir -p $HOME/.kube
 sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g ) $HOME/.kube/config
 sudo cp /etc/kubernetes/admin.conf /tmp/config
-sudo chmod 777 /tmp/config
+sudo chmod 1777 /tmp/config
 
 ## Install the network plugin
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
